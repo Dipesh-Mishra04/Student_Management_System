@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Edit Student</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet" />
+</head>
+<body>
+  <div class="container mt-4">
+    <h1>Edit Student</h1>
+    <a href="{{ url_for('manage_students') }}" class="btn btn-secondary mb-3">Back to Manage Students</a>
+    <form method="POST" enctype="multipart/form-data">
+      <div class="mb-3">
+        <label for="student_id" class="form-label">Student ID</label>
+        <input type="text" class="form-control" id="student_id" name="student_id" value="{{ student.student_id }}" readonly />
+      </div>
+      <div class="mb-3">
+        <label for="name" class="form-label">Name</label>
+        <input type="text" class="form-control" id="name" name="name" value="{{ student.name }}" required />
+      </div>
+      <div class="mb-3">
+        <label for="course" class="form-label">Course</label>
+        <input type="text" class="form-control" id="course" name="course" value="{{ student.course }}" required />
+      </div>
+      <div class="mb-3">
+        <label for="Email_Id" class="form-label">Email</label>
+        <input type="email" class="form-control" id="Email_Id" name="Email_Id" value="{{ student.Email_Id }}" required />
+      </div>
+      <div class="mb-3">
+        <label for="mobile" class="form-label">Mobile</label>
+        <input type="text" class="form-control" id="mobile" name="mobile" value="{{ student.mobile }}" required />
+      </div>
+      <div class="mb-3">
+        <label for="password" class="form-label">Password (leave blank to keep current)</label>
+        <input type="password" class="form-control" id="password" name="password" />
+      </div>
+      <div class="mb-3">
+        <label for="date_of_birth" class="form-label">Date of Birth</label>
+        <input type="date" class="form-control" id="date_of_birth" name="date_of_birth" value="{{ student.date_of_birth }}" />
+      </div>
+      <div class="mb-3">
+        <label for="gender" class="form-label">Gender</label>
+        <select class="form-select" id="gender" name="gender">
+          <option value="" {% if not student.gender %}selected{% endif %}>Select Gender</option>
+          <option value="Male" {% if student.gender == 'Male' %}selected{% endif %}>Male</option>
+          <option value="Female" {% if student.gender == 'Female' %}selected{% endif %}>Female</option>
+          <option value="Other" {% if student.gender == 'Other' %}selected{% endif %}>Other</option>
+        </select>
+      </div>
+      <div class="mb-3">
+        <label for="address" class="form-label">Address</label>
+        <textarea class="form-control" id="address" name="address" rows="3">{{ student.address }}</textarea>
+      </div>
+      <div class="mb-3">
+        <label for="profile_picture" class="form-label">Profile Picture (leave blank to keep current)</label>
+        <input class="form-control" type="file" id="profile_picture" name="profile_picture" accept="image/*" />
+        {% if student.profile_picture_url %}
+        <img src="{{ url_for('static', filename=student.profile_picture_url) }}" alt="Current Profile Picture" class="mt-2" style="width:100px; height:100px; object-fit:cover;" />
+        {% endif %}
+      </div>
+      <button type="submit" class="btn btn-primary">Update Student</button>
+    </form>
+  </div>
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

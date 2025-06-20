@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>My Profile</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+  <style>
+    body {
+      font-family: 'Inter', sans-serif;
+      background-color: #f4f6f9;
+      min-height: 100vh;
+    }
+    .profile-container {
+      max-width: 750px;  /* Further reduced the width */
+      margin: 20px auto;  /* Reduced top and bottom margin */
+      background: #fff;
+      border-radius: 15px;
+      box-shadow: 0 8px 20px rgba(0,0,0,0.15);
+      padding: 25px 15px;  /* Reduced padding */
+    }
+    .profile-info {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;  /* Further reduced gap */
+    }
+    .info-item {
+      background: #f8f9fa;
+      padding: 10px 15px;  /* Further reduced padding */
+      border-radius: 14px;
+      box-shadow: inset 0 1px 4px rgba(0,0,0,0.1);
+      border: 1px solid #ccc;
+      flex: 1 1 45%;
+      min-height: 90px;  /* Reduced min-height */
+    }
+    .info-item label {
+      font-weight: 700;
+      color: #003366;
+      font-size: 0.95rem;  /* Further reduced font size */
+      margin-bottom: 5px;  /* Reduced margin */
+    }
+    .info-item .value {
+      font-weight: 400;
+      color: #444;
+      font-size: 0.95rem;  /* Further reduced font size */
+    }
+    .profile-photo {
+      width: 230px;  /* Reduced width */
+      height: 230px;  /* Reduced height */
+      border-radius: 50%;
+      object-fit: cover;
+      border: 6px solid white;
+      box-shadow: 0 6px 20px rgba(0,0,0,0.3);
+    }
+    .photo-container {
+      width: 100%;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      margin-top: 15px;  /* Reduced margin */
+    }
+    .btn-logout {
+      background-color: #dc3545;
+      color: #fff;
+      border-radius: 50px;
+      padding: 7px 20px;  /* Reduced padding */
+      font-size: 0.95rem;  /* Further reduced font size */
+      margin-top: 15px;  /* Reduced margin */
+    }
+  </style>
+</head>
+<body>
+
+<div class="container profile-container">
+  <h2 class="text-center mb-4" style="font-weight: 700; color: #003366;">Profile Overview</h2>
+  <div class="row">
+    <div class="col-md-8">
+      <div class="profile-info">
+        <div class="info-item">
+          <label>Student ID</label>
+          <div class="value">{{ student.student_id }}</div>
+        </div>
+        <div class="info-item">
+          <label>Name</label>
+          <div class="value">{{ student.name }}</div>
+        </div>
+        <div class="info-item">
+          <label>Mobile Number</label>
+          <div class="value">{{ student.mobile }}</div>
+        </div>
+        <div class="info-item">
+          <label>Course</label>
+          <div class="value">{{ student.course }}</div>
+        </div>
+        <div class="info-item">
+          <label>Email-id</label>
+          <div class="value">{{ student.email }}</div>
+        </div>
+        <div class="info-item">
+          <label>Date of Birth</label>
+          <div class="value">{{ student.date_of_birth }}</div>
+        </div>
+        <div class="info-item">
+          <label>Gender</label>
+          <div class="value">{{ student.gender }}</div>
+        </div>
+        <div class="info-item">
+          <label>Address</label>
+          <div class="value">{{ student.address }}</div>
+        </div>
+      </div>
+      <div class="d-flex justify-content-center">
+        <a href="{{ url_for('logout') }}" class="btn btn-logout">Logout</a>
+      </div>
+    </div>
+    <div class="col-md-4 d-flex flex-column align-items-center">
+      <div class="photo-container">
+        {% if student.profile_picture_url %}
+          <img src="{{ url_for('static', filename=student.profile_picture_url) }}" alt="Profile Picture" class="profile-photo">
+        {% else %}
+          <div style="width: 230px; height: 230px; border-radius: 50%; background-color: #ccc; display: flex; align-items: center; justify-content: center; font-weight: bold; color: #666; box-shadow: 0 4px 15px rgba(0,0,0,0.3);">
+            No picture provided
+          </div>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>
