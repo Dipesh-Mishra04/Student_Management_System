@@ -1,5 +1,5 @@
 from flask import Flask, render_template, request, redirect, flash, session
-import mysql.connector
+import sqlite3
 from werkzeug.security import generate_password_hash, check_password_hash
 from werkzeug.utils import secure_filename
 import os
@@ -9,13 +9,8 @@ from functools import wraps
 app = Flask(__name__)
 app.secret_key = 'dipesh_secret_123'
 
-# MySQL Database Connection
-conn = mysql.connector.connect(
-    host='localhost',
-    user='root',
-    password='12123434',
-    database='studentmanagementsystem'
-)
+# SQLite Database Connection
+conn = sqlite3.connect('studentmanagementsystem.db', check_same_thread=False)
 cursor = conn.cursor()
 
 #00 Folder to save uploaded profile pictures
@@ -78,7 +73,7 @@ def manage_subjects():
 def add_subject():
     if request.method == 'POST':
         subject_name = request.form['subject_name']
-        cursor.execute("INSERT INTO subjects (subject_name) VALUES (%s)", (subject_name,))
+        cursor.execute("INSERT INTO subjects (subject_name) VALUES (?)", (subject_name,))
         conn.commit()
         flash('Subject added successfully!', 'success')
         return redirect('/manage_subjects')
@@ -90,11 +85,11 @@ def add_subject():
 def edit_subject(subject_id):
     if request.method == 'POST':
         subject_name = request.form['subject_name']
-        cursor.execute("UPDATE subjects SET subject_name = %s WHERE subject_id = %s", (subject_name, subject_id))
+        cursor.execute("UPDATE subjects SET subject_name = ? WHERE subject_id = ?", (subject_name, subject_id))
         conn.commit()
         flash('Subject updated successfully!', 'success')
         return redirect('/manage_subjects')
-    subject = fetch_one_dict("SELECT subject_id, subject_name FROM subjects WHERE subject_id = %s", (subject_id,))
+    subject = fetch_one_dict("SELECT subject_id, subject_name FROM subjects WHERE subject_id = ?", (subject_id,))
     if not subject:
         flash('Subject not found.', 'danger')
         return redirect('/manage_subjects')
@@ -104,7 +99,7 @@ def edit_subject(subject_id):
 @app.route('/delete_subject/<int:subject_id>')
 @admin_login_required
 def delete_subject(subject_id):
-    cursor.execute("DELETE FROM subjects WHERE subject_id = %s", (subject_id,))
+    cursor.execute("DELETE FROM subjects WHERE subject_id = ?", (subject_id,))
     conn.commit()
     flash('Subject deleted successfully!', 'success')
     return redirect('/manage_subjects')
@@ -132,22 +127,28 @@ def add_student():
         address = request.form.get('address')
         hashed_password = generate_password_hash(password)
 
-        cursor.execute("SELECT * FROM student WHERE student_id = %s", (student_id,))
+        cursor.execute("SELECT * FROM student WHERE student_id = ?", (student_id,))
         if cursor.fetchone():
             flash('Student ID already exists!', 'danger')
             return redirect('/add_student')
 
+        import uuid
         profile_picture = request.files.get('profile_picture')
         profile_picture_url = None
         if profile_picture and profile_picture.filename != '':
-            filename = secure_filename(profile_picture.filename)
-            filepath = os.path.join(app.config['UPLOAD_FOLDER'], filename)
+            import logging
+            import uuid
+            ext = os.path.splitext(profile_picture.filename)[1]
+            unique_filename = str(uuid.uuid4()) + ext
+            filepath = os.path.join(app.config['UPLOAD_FOLDER'], unique_filename)
+            logging.info(f"Saving profile picture to: {filepath}")
             profile_picture.save(filepath)
-            profile_picture_url = os.path.join('uploads', filename).replace('\\', '/')
+            profile_picture_url = os.path.join('uploads', unique_filename).replace('\\', '/')
+            logging.info(f"Profile picture URL set to: {profile_picture_url}")
 
         cursor.execute("""INSERT INTO student 
             (student_id, name, course, Email_Id, mobile, password, date_of_birth, gender, address, profile_picture_url) 
-            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)""",
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
             (student_id, name, course, Email_Id, mobile, hashed_password, date_of_birth, gender, address, profile_picture_url))
         conn.commit()
         flash('Student added successfully!', 'success')
@@ -171,32 +172,37 @@ def edit_student(student_id):
 
         profile_picture = request.files.get('profile_picture')
         profile_picture_url = None
+        print(f"DEBUG: profile_picture object: {profile_picture}")
         if profile_picture and profile_picture.filename != '':
-            filename = secure_filename(profile_picture.filename)
-            filepath = os.path.join(app.config['UPLOAD_FOLDER'], filename)
+            print(f"DEBUG: profile_picture filename: {profile_picture.filename}")
+            import uuid
+            ext = os.path.splitext(profile_picture.filename)[1]
+            unique_filename = str(uuid.uuid4()) + ext
+            filepath = os.path.join(app.config['UPLOAD_FOLDER'], unique_filename)
             profile_picture.save(filepath)
-            profile_picture_url = os.path.join('uploads', filename).replace('\\', '/')
+            profile_picture_url = os.path.join('uploads', unique_filename).replace('\\', '/')
+            print(f"DEBUG: profile_picture_url set to: {profile_picture_url}")
 
         if password:
             hashed_password = generate_password_hash(password)
             if profile_picture_url:
-                cursor.execute("""UPDATE student SET name=%s, course=%s, Email_Id=%s, mobile=%s, password=%s, date_of_birth=%s, gender=%s, address=%s, profile_picture_url=%s WHERE student_id=%s""",
+                cursor.execute("""UPDATE student SET name=?, course=?, Email_Id=?, mobile=?, password=?, date_of_birth=?, gender=?, address=?, profile_picture_url=? WHERE student_id=?""",
                                (name, course, Email_Id, mobile, hashed_password, date_of_birth, gender, address, profile_picture_url, student_id))
             else:
-                cursor.execute("""UPDATE student SET name=%s, course=%s, Email_Id=%s, mobile=%s, password=%s, date_of_birth=%s, gender=%s, address=%s WHERE student_id=%s""",
+                cursor.execute("""UPDATE student SET name=?, course=?, Email_Id=?, mobile=?, password=?, date_of_birth=?, gender=?, address=? WHERE student_id=?""",
                                (name, course, Email_Id, mobile, hashed_password, date_of_birth, gender, address, student_id))
         else:
             if profile_picture_url:
-                cursor.execute("""UPDATE student SET name=%s, course=%s, Email_Id=%s, mobile=%s, date_of_birth=%s, gender=%s, address=%s, profile_picture_url=%s WHERE student_id=%s""",
+                cursor.execute("""UPDATE student SET name=?, course=?, Email_Id=?, mobile=?, date_of_birth=?, gender=?, address=?, profile_picture_url=? WHERE student_id=?""",
                                (name, course, Email_Id, mobile, date_of_birth, gender, address, profile_picture_url, student_id))
             else:
-                cursor.execute("""UPDATE student SET name=%s, course=%s, Email_Id=%s, mobile=%s, date_of_birth=%s, gender=%s, address=%s WHERE student_id=%s""",
+                cursor.execute("""UPDATE student SET name=?, course=?, Email_Id=?, mobile=?, date_of_birth=?, gender=?, address=? WHERE student_id=?""",
                                (name, course, Email_Id, mobile, date_of_birth, gender, address, student_id))
         conn.commit()
         flash('Student updated successfully!', 'success')
         return redirect('/manage_students')
 
-    student = fetch_one_dict("SELECT student_id, name, course, Email_Id, mobile, date_of_birth, gender, address, profile_picture_url FROM student WHERE student_id = %s", (student_id,))
+    student = fetch_one_dict("SELECT student_id, name, course, Email_Id, mobile, date_of_birth, gender, address, profile_picture_url FROM student WHERE student_id = ?", (student_id,))
     if not student:
         flash('Student not found.', 'danger')
         return redirect('/manage_students')
@@ -206,7 +212,7 @@ def edit_student(student_id):
 @app.route('/delete_student/<student_id>')
 @admin_login_required
 def delete_student(student_id):
-    cursor.execute("DELETE FROM student WHERE student_id = %s", (student_id,))
+    cursor.execute("DELETE FROM student WHERE student_id = ?", (student_id,))
     conn.commit()
     flash('Student deleted successfully!', 'success')
     return redirect('/manage_students')
@@ -227,18 +233,23 @@ def signup():
 
             profile_picture = request.files.get('profile_picture')
             profile_picture_url = None
+            print(f"DEBUG SIGNUP: profile_picture object: {profile_picture}")
             if profile_picture and profile_picture.filename != '':
-                filename = secure_filename(profile_picture.filename)
-                filepath = os.path.join(app.config['UPLOAD_FOLDER'], filename)
+                print(f"DEBUG SIGNUP: profile_picture filename: {profile_picture.filename}")
+                import uuid
+                ext = os.path.splitext(profile_picture.filename)[1]
+                unique_filename = str(uuid.uuid4()) + ext
+                filepath = os.path.join(app.config['UPLOAD_FOLDER'], unique_filename)
                 profile_picture.save(filepath)
-                profile_picture_url = os.path.join('uploads', filename).replace('\\', '/')
+                profile_picture_url = os.path.join('uploads', unique_filename).replace('\\', '/')
+                print(f"DEBUG SIGNUP: profile_picture_url set to: {profile_picture_url}")
 
-            cursor.execute("SELECT * FROM admin WHERE admin_id = %s", (admin_id,))
+            cursor.execute("SELECT * FROM admin WHERE admin_id = ?", (admin_id,))
             if cursor.fetchone():
                 flash('Admin ID already exists!', 'danger')
                 return redirect('/signup')
 
-            cursor.execute("INSERT INTO admin (admin_id, department, name, mobile, password, profile_picture_url) VALUES (%s, %s, %s, %s, %s, %s)",
+            cursor.execute("INSERT INTO admin (admin_id, department, name, mobile, password, profile_picture_url) VALUES (?, ?, ?, ?, ?, ?)",
                            (admin_id, department, name, mobile, hashed_password, profile_picture_url))
             conn.commit()
             flash('Admin registered successfully!', 'success')
@@ -252,26 +263,32 @@ def signup():
             gender = request.form.get('gender')
             address = request.form.get('address')
 
-            profile_picture = request.files.get('profile_picture')
-            profile_picture_url = None
-            if profile_picture and profile_picture.filename != '':
-                filename = secure_filename(profile_picture.filename)
-                filepath = os.path.join(app.config['UPLOAD_FOLDER'], filename)
+        profile_picture = request.files.get('profile_picture')
+        profile_picture_url = None
+        if profile_picture and profile_picture.filename != '':
+            import uuid
+            ext = os.path.splitext(profile_picture.filename)[1]
+            unique_filename = str(uuid.uuid4()) + ext
+            filepath = os.path.join(app.config['UPLOAD_FOLDER'], unique_filename)
+            try:
                 profile_picture.save(filepath)
-                profile_picture_url = os.path.join('uploads', filename).replace('\\', '/')
+                profile_picture_url = os.path.join('uploads', unique_filename).replace('\\', '/')
+            except Exception as e:
+                print(f"Error saving profile picture: {e}")
 
-            cursor.execute("SELECT * FROM student WHERE student_id = %s", (student_id,))
+            cursor.execute("SELECT * FROM student WHERE student_id = ?", (student_id,))
             if cursor.fetchone():
                 flash('Student ID already exists!', 'danger')
                 return redirect('/signup')
 
             cursor.execute("""INSERT INTO student 
                 (student_id, course, Email_Id, name, mobile, password, date_of_birth, gender, address, profile_picture_url) 
-                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)""",
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
                 (student_id, course, Email_Id, name, mobile, hashed_password, date_of_birth, gender, address, profile_picture_url))
             conn.commit()
             flash('Student registered successfully!', 'success')
-            return redirect('/')
+            session['student_id'] = student_id
+            return redirect('/student_dashboard')
 
         else:
             flash('Please select a valid role.', 'danger')
@@ -286,7 +303,7 @@ def login():
     password = request.form['password']
 
     if user_type == 'admin':
-        cursor.execute("SELECT password FROM admin WHERE admin_id = %s", (username,))
+        cursor.execute("SELECT password FROM admin WHERE admin_id = ?", (username,))
         result = cursor.fetchone()
         print(f"Admin login attempt for {username}, fetched hash: {result}")
         if result and check_password_hash(result[0], password):
@@ -300,7 +317,7 @@ def login():
             return redirect('/')
 
     if user_type == 'student':
-        cursor.execute("SELECT password FROM student WHERE student_id = %s", (username,))
+        cursor.execute("SELECT password FROM student WHERE student_id = ?", (username,))
         result = cursor.fetchone()
         print(f"Student login attempt for {username}, fetched hash: {result}")
         if result and check_password_hash(result[0], password):
@@ -322,7 +339,7 @@ def login():
 @student_login_required
 def student_dashboard():
     student_id = session.get('student_id')
-    student = fetch_one_dict("SELECT name, profile_picture_url FROM student WHERE student_id = %s", (student_id,))
+    student = fetch_one_dict("SELECT name, profile_picture_url FROM student WHERE student_id = ?", (student_id,))
     name = student['name'] if student else 'Student'
     profile_picture_url = student['profile_picture_url'] if student else None
 
@@ -339,7 +356,7 @@ def my_courses():
         SELECT s.subject_name
         FROM subjects s
         JOIN student_subjects ss ON s.subject_id = ss.subject_id
-        WHERE ss.student_id = %s
+        WHERE ss.student_id = ?
     """, (student_id,))
     return render_template('my_courses.html', courses=courses)
 
@@ -348,7 +365,7 @@ def my_courses():
 @admin_login_required
 def admin_dashboard():
     admin_id = session.get('admin_id')
-    admin = fetch_one_dict("SELECT name, profile_picture_url FROM admin WHERE admin_id = %s", (admin_id,))
+    admin = fetch_one_dict("SELECT name, profile_picture_url FROM admin WHERE admin_id = ?", (admin_id,))
     admin_name = admin['name'] if admin else 'Admin'
     profile_picture_url = admin['profile_picture_url'] if admin else None
     return render_template('admin_dashboard.html', admin_name=admin_name, profile_picture_url=profile_picture_url)
@@ -358,7 +375,7 @@ def admin_dashboard():
 @student_login_required
 def profile():
     student_id = session.get('student_id')
-    student = fetch_one_dict("SELECT student_id, name, mobile, course, Email_Id, date_of_birth, gender, address, profile_picture_url FROM student WHERE student_id = %s", (student_id,))
+    student = fetch_one_dict("SELECT student_id, name, mobile, course, Email_Id as email, date_of_birth, gender, address, profile_picture_url FROM student WHERE student_id = ?", (student_id,))
     if not student:
         flash('Student not found.', 'danger')
         return redirect('/student_dashboard')
@@ -378,7 +395,7 @@ def post_notice():
     if request.method == 'POST':
         title = request.form['title']
         content = request.form['content']
-        cursor.execute("INSERT INTO notices (title, content) VALUES (%s, %s)", (title, content))
+        cursor.execute("INSERT INTO notices (title, content) VALUES (?, ?)", (title, content))
         conn.commit()
         flash('Notice posted successfully!', 'success')
         return redirect('/admin_dashboard')
