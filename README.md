@@ -6,7 +6,7 @@ A full-stack **Student Management System** built using **Flask (Python)** as bac
 
 ## 🚀 Live Demo
 
-🔗 https://student-management-system-9z06.onrender.com
+🔗 [Live Demo](https://student-management-system-9z06.onrender.com)
 🔗 [GitHub Repository](https://github.com/Dipesh-Mishra04/Student_Management_System)
 
 ---
